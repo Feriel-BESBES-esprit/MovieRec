@@ -17,5 +17,7 @@ urlpatterns = [
     # AJAX actions
     path('rate/<int:movie_id>/', views.rate_movie, name='rate_movie'),
     path('watchlist/toggle/<int:movie_id>/', views.toggle_watchlist, name='toggle_watchlist'),
-
+    # core/urls.py — ADD THIS LINE
+path('recommendations/', views.more_recommendations, name='more_recommendations'),
+path('admin-dashboard/', views.admin_dashboard, name='admin_dashboard'),
 ]
