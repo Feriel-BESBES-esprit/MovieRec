@@ -22,7 +22,7 @@
 <section class="movie-section">
     <div class="section-header">
         <h2>Recommended For You</h2>
-        <a href="{% url 'watchlist' %}" class="see-all">My Watchlist <i class="fas fa-arrow-right"></i></a>
+        <a href="{% url 'more_recommendations' %}" class="see-all">Get More Recommendations <i class="fas fa-arrow-right"></i></a>
     </div>
     <div class="movies-carousel">
         {% for movie in recommended_movies %}
