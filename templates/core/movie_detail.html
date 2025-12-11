@@ -1,0 +1,195 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}{{ movie.title }} - MovieRec{% endblock %}
+
+{% block content %}
+<div class="movie-detail-container">
+    <!-- Movie Header with Banner -->
+    <div class="movie-detail-header" style="background: linear-gradient(135deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.95) 100%), url('{{ movie.poster_url|default:'https://i.pinimg.com/736x/80/71/3d/80713de6b01fb213d5fe67730a71f89d.jpg' }}'); background-size: cover; background-position: center;">
+        <div class="movie-detail-content">
+            <div class="movie-detail-poster">
+                <img src="{{ movie.poster_url|default:'https://i.pinimg.com/736x/80/71/3d/80713de6b01fb213d5fe67730a71f89d.jpg' }}" 
+                     alt="{{ movie.title }}" 
+                     onerror="this.src='https://i.pinimg.com/736x/80/71/3d/80713de6b01fb213d5fe67730a71f89d.jpg'">
+            </div>
+            <div class="movie-detail-info">
+                <h1 class="movie-detail-title">{{ movie.title }}</h1>
+                
+                <div class="movie-detail-stats">
+                    <div class="stat">
+                        <span class="stat-label">Rating</span>
+                        <span class="stat-value">
+                            <i class="fas fa-star"></i> {{ average_rating }}/5
+                        </span>
+                        <span class="stat-count">({{ rating_count }} ratings)</span>
+                    </div>
+                    {% if movie.year %}
+                    <div class="stat">
+                        <span class="stat-label">Year</span>
+                        <span class="stat-value">{{ movie.year }}</span>
+                    </div>
+                    {% endif %}
+                    {% if movie.genres %}
+                    <div class="stat">
+                        <span class="stat-label">Genres</span>
+                        <span class="stat-value">{{ movie.genres }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="movie-detail-actions">
+                    <button class="btn btn-primary" onclick="document.querySelector('.rating-section').scrollIntoView({behavior: 'smooth'})">
+                        <i class="fas fa-star"></i> Rate This Movie
+                    </button>
+                    <button class="btn btn-secondary watchlist-btn" data-movie-id="{{ movie.movie_id }}">
+                        <i class="fas fa-bookmark"></i> 
+                        <span class="watchlist-text">{% if in_watchlist %}Remove from Watchlist{% else %}Add to Watchlist{% endif %}</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rating Section -->
+
+<!-- Rating Section -->
+{% if user.is_authenticated %}
+<section class="rating-section">
+    <h2>Your Rating</h2>
+    <div class="rating-form">
+        <form id="rating-form">
+            {% csrf_token %}
+            <div class="rating-stars">
+                {% for i in "12345" %}
+                {% with forloop.counter as star_value %}
+                <label class="star-label {% if user_rating and user_rating.rating >= star_value %}rated{% endif %}" title="{{ star_value }} star{{ star_value|pluralize }}">
+                    <input type="radio" name="rating" value="{{ star_value }}" {% if user_rating and user_rating.rating == star_value %}checked{% endif %}>
+                    <i class="fas fa-star"></i>
+                </label>
+                {% endwith %}
+                {% endfor %}
+            </div>
+            <div><h1></h1</div>
+            <button type="submit" class="btn btn-primary">Submit Rating</button>
+        </form>
+        {% if user_rating %}
+        <p class="your-rating-text">You rated this <strong>{{ user_rating.rating }}/5</strong></p>
+        {% endif %}
+    </div>
+</section>
+{% else %}
+<section class="auth-prompt">
+    <p><a href="{% url 'login' %}">Log in</a> to rate this movie</p>
+</section>
+{% endif %}
+
+    <!-- Similar Movies Section -->
+    {% if similar_movies %}
+    <section class="similar-section">
+        <h2>Similar Movies</h2>
+        <div class="movies-grid">
+            {% for movie_item in similar_movies %}
+                {% include 'core/movie_card.html' with movie=movie_item %}
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- Recommended Section -->
+    {% if recommended_movies %}
+    <section class="recommended-section">
+        <h2>Recommended For You</h2>
+        <div class="movies-grid">
+            {% for movie_item in recommended_movies %}
+                {% include 'core/movie_card.html' with movie=movie_item %}
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // AJAX Rating
+    const ratingForm = document.getElementById('rating-form');
+    if (ratingForm) {
+        ratingForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const selected = ratingForm.querySelector('input[name="rating"]:checked');
+            if (!selected) {
+                showNotification('Please select a rating');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('rating', selected.value);
+            formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+
+            fetch("{% url 'rate_movie' movie.movie_id %}", {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Network error');
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === 'success') {
+                    showNotification('Rating saved!');
+                    location.reload(); // Refresh to update stars
+                } else {
+                    showNotification(data.message || 'Error saving rating');
+                }
+            })
+            .catch(err => {
+                showNotification('Error saving rating');
+                console.error(err);
+            });
+        });
+    }
+
+    // AJAX Watchlist
+    document.querySelectorAll('.watchlist-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const movieId = this.dataset.movieId;
+            const csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+            fetch(`/watchlist/toggle/${movieId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrf,
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    const text = btn.querySelector('.watchlist-text');
+                    text.textContent = data.added ? 'Remove from Watchlist' : 'Add to Watchlist';
+                    showNotification(data.added ? 'Added to watchlist!' : 'Removed from watchlist');
+                }
+            })
+            .catch(err => {
+                showNotification('Error updating watchlist');
+                console.error(err);
+            });
+        });
+    });
+});
+
+function showNotification(message) {
+    const notif = document.createElement('div');
+    notif.className = 'notification';
+    notif.textContent = message;
+    document.body.appendChild(notif);
+    setTimeout(() => notif.remove(), 3000);
+}
+</script>
+{% endblock %}

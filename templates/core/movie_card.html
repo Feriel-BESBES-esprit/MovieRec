@@ -1,0 +1,46 @@
+<div class="movie-card">
+    <div class="movie-poster">
+        <a href="{% url 'movie_detail' movie.movie_id %}">
+            <img src="{{ movie.poster_url|default:'https://i.pinimg.com/736x/80/71/3d/80713de6b01fb213d5fe67730a71f89d.jpg' }}" 
+                 alt="{{ movie.title }}" 
+                 class="movie-poster-img"
+                 onerror="this.src='https://i.pinimg.com/736x/80/71/3d/80713de6b01fb213d5fe67730a71f89d.jpg'">
+            <div class="movie-overlay">
+                <div class="overlay-content">
+                    <a href="{% url 'movie_detail' movie.movie_id %}" class="play-btn">
+                        <i class="fas fa-play"></i>
+                    </a>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="movie-info">
+        <h3 class="movie-title">{{ movie.title }}</h3>
+        <div class="movie-rating">
+            <i class="fas fa-star"></i> {{ movie.rating|floatformat:1 }}
+        </div>
+        {% if movie.year %}
+            <p class="movie-year">{{ movie.year }}</p>
+        {% endif %}
+    </div>
+
+    <div class="movie-actions">
+        <form action="{% url 'toggle_watchlist' movie.movie_id %}" method="post" >
+            {% csrf_token %}
+            {% if movie.in_watchlist %}
+                <button type="submit" class="action-btn" title="Remove from watchlist">
+                    <i class="fas fa-bookmark"></i>
+                </button>
+            {% else %}
+                <button type="submit" class="action-btn" title="Add to watchlist">
+                    <i class="fas fa-bookmark"></i>
+                </button>
+            {% endif %}
+        </form>
+
+        <a href="{% url 'movie_detail' movie.movie_id %}" class="action-btn" title="Details">
+            <i class="fas fa-info-circle"></i>
+        </a>
+    </div>
+</div>

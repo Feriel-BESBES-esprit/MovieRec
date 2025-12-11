@@ -1,0 +1,121 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}My Watchlist - MovieRec{% endblock %}
+
+{% block content %}
+<div class="watchlist-container">
+    <h1>My Watchlist</h1>
+    <p class="watchlist-count">{{ watchlist_count }} movie{{ watchlist_count|pluralize }}</p>
+
+    {% if watchlist_items %}
+    <div class="watchlist-grid">
+        {% for item in watchlist_items %}
+        <div class="watchlist-item">
+            <div class="movie-poster">
+                <a href="{% url 'movie_detail' item.movie.movie_id %}">
+                    <img src="{{ item.movie.poster_url }}" alt="{{ item.movie.title }}" onerror="this.src='https://via.placeholder.com/300x450?text=No+Image'">
+                    <div class="movie-overlay">
+                        <div class="overlay-content">
+                            <a href="{% url 'movie_detail' item.movie.movie_id %}" class="play-btn">
+                                <i class="fas fa-play"></i>
+                            </a>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="watchlist-item-info">
+                <h3>{{ item.movie.title }}</h3>
+                <p class="added-date">Added {{ item.added_at|date:"M d, Y" }}</p>
+                <div class="watchlist-item-actions">
+                    <a href="{% url 'movie_detail' item.movie.movie_id %}" class="btn btn-primary">Watch</a>
+                    <button class="btn btn-danger" onclick="toggleWatchlistFromList({{ item.movie.movie_id }}, this)">Remove</button>
+
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-watchlist">
+        <i class="fas fa-bookmark"></i>
+        <p>Your watchlist is empty</p>
+        <a href="{% url 'browse' %}" class="btn btn-primary">Browse Movies</a>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function removeFromWatchlist(itemId) {
+    if (confirm('Remove from watchlist?')) {
+        // Implementation will depend on your API setup
+        location.reload();
+    }
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function toggleWatchlistFromList(movieId, btn) {
+    if (!confirm('Remove from watchlist?')) return;
+    fetch(`/movie/${movieId}/watchlist/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Accept': 'application/json'
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'success' && data.added === false) {
+            // find the watchlist-item element and remove it
+            const itemEl = btn.closest('.watchlist-item');
+            if (itemEl) itemEl.remove();
+
+            // update count displayed
+            const countEl = document.querySelector('.watchlist-count');
+            if (countEl) {
+                // parse current count, decrement safely
+                let n = parseInt(countEl.textContent) || 0;
+                n = Math.max(0, n - 1);
+                countEl.textContent = `${n} movie${n !== 1 ? 's' : ''}`;
+            }
+
+            showNotification('Removed from watchlist');
+        } else {
+            showNotification('Could not remove from watchlist');
+            console.error('toggleWatchlistFromList error:', data);
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        showNotification('Request failed');
+    });
+}
+
+function showNotification(message) {
+    const notification = document.createElement('div');
+    notification.className = 'notification';
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    setTimeout(() => notification.remove(), 3000);
+}
+
+
+</script>
+{% endblock %}

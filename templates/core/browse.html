@@ -1,0 +1,33 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Browse Movies - MovieRec{% endblock %}
+
+{% block content %}
+<div class="browse-container">
+    <h1>Browse Movies</h1>
+    
+    <!-- Genre Filter -->
+    <div class="genre-filter">
+        <a href="{% url 'browse' %}" class="genre-btn {% if not genre %}active{% endif %}">All Genres</a>
+        {% for g in all_genres %}
+        <a href="{% url 'browse' %}?genre={{ g }}" class="genre-btn {% if genre == g %}active{% endif %}">{{ g }}</a>
+        {% endfor %}
+    </div>
+
+    <!-- Movies Grid -->
+    {% if movies %}
+    <div class="movies-grid">
+        {% for movie in movies %}
+            {% include 'core/movie_card.html' with movie=movie %}
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="no-movies">
+        <p>No movies available in this genre.</p>
+        <a href="{% url 'browse' %}" class="btn btn-primary">View All Movies</a>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

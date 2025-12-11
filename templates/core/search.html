@@ -1,0 +1,32 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Search Results - MovieRec{% endblock %}
+
+{% block content %}
+<div class="search-container">
+    <h1>Search Results</h1>
+    {% if query %}
+        <p class="search-info">Found <strong>{{ results_count }}</strong> movies for "<strong>{{ query }}</strong>"</p>
+    {% else %}
+        <p class="search-info">Enter a search term to find movies</p>
+    {% endif %}
+
+    {% if movies %}
+    <div class="movies-grid">
+        {% for movie in movies %}
+            {% include 'core/movie_card.html' with movie=movie %}
+        {% empty %}
+            <p class="no-movies">No movies found matching your search.</p>
+        {% endfor %}
+    </div>
+    {% elif query %}
+    <div class="no-results">
+        <i class="fas fa-search"></i>
+        <p>No movies found for "{{ query }}"</p>
+        <a href="{% url 'browse' %}" class="btn btn-primary">Browse All Movies</a>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

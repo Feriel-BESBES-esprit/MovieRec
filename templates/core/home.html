@@ -1,0 +1,190 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}MovieRec - Discover Your Next Favorite Movie{% endblock %}
+
+{% block content %}
+<!-- Rotating Featured Hero (changes every 3 seconds) -->
+{% if recommended_movies or all_movies %}
+<section class="featured-section" id="featured-hero">
+    <div class="featured-content" id="featured-content">
+        <!-- Will be filled by JavaScript -->
+    </div>
+</section>
+{% endif %}
+
+
+
+<!-- Popular & Genre Rows -->
+<div class="browse-sections">
+    <!-- Recommended For You Row -->
+{% if recommended_movies %}
+<section class="movie-section">
+    <div class="section-header">
+        <h2>Recommended For You</h2>
+        <a href="{% url 'watchlist' %}" class="see-all">My Watchlist <i class="fas fa-arrow-right"></i></a>
+    </div>
+    <div class="movies-carousel">
+        {% for movie in recommended_movies %}
+            {% include 'core/movie_card.html' with movie=movie %}
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+    <!-- Popular Movies -->
+    <section class="movie-section">
+        <div class="section-header">
+            <h2>Popular Movies</h2>
+            <a href="{% url 'browse' %}" class="see-all">See All <i class="fas fa-arrow-right"></i></a>
+        </div>
+        <div class="movies-grid">
+            {% for movie in all_movies %}
+                {% include 'core/movie_card.html' with movie=movie %}
+            {% empty %}
+                <p class="no-movies">No movies available.</p>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- Genre Rows -->
+    {% if action_movies %}
+    <section class="movie-section">
+        <div class="section-header">
+            <h2><i class="fas fa-explosion"></i> Action</h2>
+            <a href="{% url 'browse' %}?genre=Action" class="see-all">See All</a>
+        </div>
+        <div class="movies-carousel">
+            {% for movie in action_movies %}
+                {% include 'core/movie_card.html' with movie=movie %}
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    {% if comedy_movies %}
+    <section class="movie-section">
+        <div class="section-header">
+            <h2><i class="fas fa-laugh"></i> Comedy</h2>
+            <a href="{% url 'browse' %}?genre=Comedy" class="see-all">See All</a>
+        </div>
+        <div class="movies-carousel">
+            {% for movie in comedy_movies %}
+                {% include 'core/movie_card.html' with movie=movie %}
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    {% if drama_movies %}
+    <section class="movie-section">
+        <div class="section-header">
+            <h2><i class="fas fa-theater-masks"></i> Drama</h2>
+            <a href="{% url 'browse' %}?genre=Drama" class="see-all">See All</a>
+        </div>
+        <div class="movies-carousel">
+            {% for movie in drama_movies %}
+                {% include 'core/movie_card.html' with movie=movie %}
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    {% if thriller_movies %}
+    <section class="movie-section">
+        <div class="section-header">
+            <h2><i class="fas fa-mask"></i> Thriller</h2>
+            <a href="{% url 'browse' %}?genre=Thriller" class="see-all">See All</a>
+        </div>
+        <div class="movies-carousel">
+            {% for movie in thriller_movies %}
+                {% include 'core/movie_card.html' with movie=movie %}
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    {% if horror_movies %}
+    <section class="movie-section">
+        <div class="section-header">
+            <h2><i class="fas fa-ghost"></i> Horror</h2>
+            <a href="{% url 'browse' %}?genre=Horror" class="see-all">See All</a>
+        </div>
+        <div class="movies-carousel">
+            {% for movie in horror_movies %}
+                {% include 'core/movie_card.html' with movie=movie %}
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Rotating Featured Hero — changes every 3 seconds
+document.addEventListener('DOMContentLoaded', function() {
+    const featuredMovies = [
+        {% if recommended_movies %}
+            {% for movie in recommended_movies|slice:":3" %}
+            {
+                id: "{{ movie.movie_id }}",
+                title: "{{ movie.title|escapejs }}",
+                year: "{{ movie.year|default:'' }}",
+                genres: "{{ movie.genres|default:'' }}",
+                poster: "{{ movie.poster_url|default:'https://i.pinimg.com/736x/80/71/3d/80713de6b01fb213d5fe67730a71f89d.jpg' }}"
+            }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        {% else %}
+            {% for movie in all_movies|slice:":3" %}
+            {
+                id: "{{ movie.movie_id }}",
+                title: "{{ movie.title|escapejs }}",
+                year: "{{ movie.year|default:'' }}",
+                genres: "{{ movie.genres|default:'' }}",
+                poster: "{{ movie.poster_url|default:'https://i.pinimg.com/736x/80/71/3d/80713de6b01fb213d5fe67730a71f89d.jpg' }}"
+            }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        {% endif %}
+    ];
+
+    if (featuredMovies.length === 0) return;
+
+    let currentIndex = 0;
+    const hero = document.getElementById('featured-hero');
+    const content = document.getElementById('featured-content');
+
+    function updateFeatured() {
+        const movie = featuredMovies[currentIndex];
+hero.style.backgroundImage = `linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.9) 100%), url('${movie.poster}')`;
+
+hero.style.backgroundSize = 'cover';
+hero.style.backgroundPosition = 'center';
+hero.style.backgroundRepeat = 'no-repeat';
+        content.innerHTML = `
+            <h1 class="featured-title">${movie.title}</h1>
+            <div class="featured-info">
+                ${movie.year ? `<span class="featured-year">${movie.year}</span>` : ''}
+                <span class="featured-genres">${movie.genres}</span>
+            </div>
+            <div class="featured-buttons">
+                <a href="/movie/${movie.id}/" class="btn btn-primary">
+                    <i class="fas fa-play"></i> Watch Now
+                </a>
+                <button class="btn btn-secondary" onclick="toggleWatchlist('${movie.id}')">
+                    <i class="fas fa-bookmark"></i> Add to Watchlist
+                </button>
+            </div>
+        `;
+
+        currentIndex = (currentIndex + 1) % featuredMovies.length;
+    }
+
+    // Initial load
+    updateFeatured();
+
+    // Change every 3 seconds
+    setInterval(updateFeatured, 3000);
+});
+</script>
+{% endblock %}
