@@ -1,0 +1,188 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Admin Dashboard - MovieRec{% endblock %}
+
+{% block content %}
+<div class="browse-container">
+    <h1>Admin Dashboard</h1>
+    <p class="search-info">MovieRec Analytics & ML Insights</p>
+
+    <!-- Statistics Cards -->
+    <div class="movies-grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); margin-bottom: 3rem; gap: 1.5rem;">
+        <div class="movie-card" style="text-align: center; padding: 2rem;">
+            <h3>Total Users</h3>
+            <h2 style="color: var(--accent-primary); font-size: 2.5rem;">{{ total_users }}</h2>
+        </div>
+        <div class="movie-card" style="text-align: center; padding: 2rem;">
+            <h3>Total Movies</h3>
+            <h2 style="color: var(--accent-primary); font-size: 2.5rem;">{{ total_movies }}</h2>
+        </div>
+        <div class="movie-card" style="text-align: center; padding: 2rem;">
+            <h3>Total Ratings</h3>
+            <h2 style="color: var(--accent-primary); font-size: 2.5rem;">{{ total_ratings }}</h2>
+        </div>
+        <div class="movie-card" style="text-align: center; padding: 2rem;">
+            <h3>Avg Ratings/User</h3>
+            <h2 style="color: var(--accent-primary); font-size: 2.5rem;">{{ avg_ratings_per_user }}</h2>
+        </div>
+    </div>
+
+    <!-- Popular Movies -->
+    <section class="movie-section">
+        <h2>Top 10 Most Rated Movies</h2>
+        <div class="movies-grid">
+            {% for movie in popular_movies %}
+                <div class="movie-card">
+                    <div class="movie-poster">
+                        <img src="{{ movie.poster_url|default:'https://via.placeholder.com/300x450?text=No+Poster' }}" 
+                             alt="{{ movie.title }}" style="object-fit: cover;">
+                    </div>
+                    <div class="movie-info">
+                        <h3 class="movie-title">{{ movie.title }}</h3>
+                        <p><strong>Ratings:</strong> {{ movie.rating_count }}</p>
+                        <p><strong>Avg:</strong> {{ movie.avg_rating|floatformat:1 }}/5</p>
+                    </div>
+                </div>
+            {% empty %}
+                <p>No ratings yet.</p>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- Genre Distribution -->
+    <section class="movie-section">
+        <h2>Genre Distribution</h2>
+        <div style="background: var(--bg-secondary); padding: 2rem; border-radius: 8px; margin-bottom: 3rem;">
+            <canvas id="genreChart" height="100"></canvas>
+        </div>
+    </section>
+
+    <!-- ML User Segmentation -->
+    <section class="movie-section">
+        <h2>ML User Segmentation (K-Means Clustering)</h2>
+        
+        <div style="background: var(--bg-secondary); padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem;">
+            <p><strong>Number of Clusters:</strong> {{ clustering_info.k }}</p>
+            <p><strong>Silhouette Score:</strong> {{ clustering_info.silhouette }}</p>
+            <p><strong>Cluster Balance:</strong> {{ clustering_info.balance }}</p>
+        </div>
+
+        <!-- Smaller Pie Chart Container -->
+        <div style="background: var(--bg-secondary); padding: 1.5rem; border-radius: 8px; margin-bottom: 3rem; display: flex; justify-content: center;">
+            <div style="max-width: 400px; width: 100%;">
+                <canvas id="segmentChart" height="200"></canvas>
+            </div>
+        </div>
+
+        <!-- Cluster Characteristics -->
+        <h3 style="margin-bottom: 1rem;">Cluster Characteristics</h3>
+        <div class="movies-grid" style="gap: 1.5rem;">
+            <div class="movie-card" style="padding: 1.5rem;">
+                <h3>Cluster 0</h3>
+                <p><strong>Size:</strong> <span id="cluster0Percent">~30%</span> of users</p>
+                <p><strong>Traits:</strong> Moderately active, very strict raters, inconsistent ratings</p>
+            </div>
+            <div class="movie-card" style="padding: 1.5rem;">
+                <h3>Cluster 1</h3>
+                <p><strong>Size:</strong> <span id="cluster1Percent">~41%</span> of users</p>
+                <p><strong>Traits:</strong> Moderately active, moderately strict, consistent ratings</p>
+            </div>
+            <div class="movie-card" style="padding: 1.5rem;">
+                <h3>Cluster 2</h3>
+                <p><strong>Size:</strong> <span id="cluster2Percent">~29%</span> of users</p>
+                <p><strong>Traits:</strong> Moderately active, lenient raters, inconsistent ratings, positive reviewers</p>
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Genre Chart
+    const genreData = {{ genre_stats|safe }};
+    new Chart(document.getElementById('genreChart'), {
+        type: 'bar',
+        data: {
+            labels: genreData.map(g => g.genre),
+            datasets: [{
+                label: 'Movies',
+                data: genreData.map(g => g.count),
+                backgroundColor: 'rgba(229, 9, 20, 0.8)',
+                borderColor: '#e50914',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#b3b3b3' } },
+                x: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#b3b3b3' } }
+            }
+        }
+    });
+
+    // Segmentation Chart - Smaller Pie Chart with percentages
+    const segmentData = {{ segment_data|safe }};
+    if (segmentData.length > 0) {
+        // Calculate total for percentages
+        const total = segmentData.reduce((sum, item) => sum + item.count, 0);
+        
+        // Update the cluster cards with actual percentages
+        document.getElementById('cluster0Percent').textContent = segmentData[0] ? ((segmentData[0].count / total) * 100).toFixed(1) + '%' : '0%';
+        document.getElementById('cluster1Percent').textContent = segmentData[1] ? ((segmentData[1].count / total) * 100).toFixed(1) + '%' : '0%';
+        document.getElementById('cluster2Percent').textContent = segmentData[2] ? ((segmentData[2].count / total) * 100).toFixed(1) + '%' : '0%';
+        
+        // Create labels with percentages
+        const labelsWithPercentages = segmentData.map(s => {
+            const percentage = ((s.count / total) * 100).toFixed(1);
+            return `${s.segment} (${percentage}%)`;
+        });
+        
+        new Chart(document.getElementById('segmentChart'), {
+            type: 'doughnut',
+            data: {
+                labels: labelsWithPercentages,
+                datasets: [{
+                    data: segmentData.map(s => s.count),
+                    backgroundColor: ['#e50914', '#c40812', '#ff6b6b'],
+                    borderColor: '#141414',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { 
+                        position: 'bottom', 
+                        labels: { 
+                            color: '#ffffff', 
+                            font: { 
+                                size: 12 
+                            },
+                            padding: 15
+                        } 
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.raw || 0;
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                return `${label}: ${value} users (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
