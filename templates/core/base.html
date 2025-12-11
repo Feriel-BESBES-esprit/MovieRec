@@ -28,6 +28,13 @@
             </div>
             <div class="nav-auth">
                 {% if user.is_authenticated %}
+                    <!-- Dashboard Button for Admin Users -->
+                    {% if user.is_staff or user.is_superuser %}
+                        <a href="{% url 'admin_dashboard' %}" class="nav-link nav-dashboard">
+                            <i class="fas fa-chart-line"></i> Dashboard
+                        </a>
+                    {% endif %}
+                    
                     <a href="{% url 'watchlist' %}" class="nav-link nav-watchlist">
                         <i class="fas fa-bookmark"></i> Watchlist
                     </a>
