@@ -250,3 +250,111 @@ def login_view(request):
 def logout_view(request):
     logout(request)
     return redirect('home')
+
+# core/views.py — ADD THIS FUNCTION
+def more_recommendations(request):
+    recommendations = []
+    if request.user.is_authenticated:
+        recommended_ids = get_personalized_recommendations(request.user.id, n=100)
+        recommendations = Movie.objects.filter(movie_id__in=recommended_ids)
+
+    context = {
+        'recommendations': recommendations,
+        'total': recommendations.count(),
+    }
+    return render(request, 'core/more_recommendations.html', context)
+
+# core/views.py — ADD THIS FUNCTION
+from django.contrib.admin.views.decorators import staff_member_required
+from django.db.models import Count, Avg
+from core.models import Movie, UserRating, UserProfile
+import pandas as pd
+import json
+
+# core/views.py — REPLACE THE admin_dashboard FUNCTION WITH THIS
+
+from django.contrib.admin.views.decorators import staff_member_required
+from django.db.models import Count, Avg
+from core.models import Movie, UserRating
+from django.contrib.auth.models import User
+import os
+import pickle
+from django.conf import settings
+import json
+
+# core/views.py — FINAL PROFESSIONAL VERSION
+
+@staff_member_required
+def admin_dashboard(request):
+    total_users = User.objects.count()
+    total_movies = Movie.objects.count()
+    total_ratings = UserRating.objects.count()
+    avg_ratings_per_user = round(total_ratings / total_users if total_users else 0, 2)
+
+    popular_movies = Movie.objects.annotate(
+        rating_count=Count('user_ratings'),
+        avg_rating=Avg('user_ratings__rating')
+    ).order_by('-rating_count')[:10]
+
+    genre_stats = []
+    genres = ['Action', 'Comedy', 'Drama', 'Thriller', 'Horror', 'Romance', 'Sci-Fi', 'Adventure']
+    for genre in genres:
+        count = Movie.objects.filter(genres__icontains=genre).count()
+        genre_stats.append({'genre': genre, 'count': count})
+
+    # LOAD YOUR REAL ML CLUSTERING (list of Series)
+    segment_data = []
+    clustering_info = {'k': 'N/A', 'silhouette': 'N/A', 'balance': 'N/A'}
+    cluster_genres = []
+
+    try:
+        cluster_profiles = pickle.load(open(os.path.join(settings.BASE_DIR, 'data', 'cluster_profiles.pkl'), 'rb'))
+        best_k = len(cluster_profiles)  # number of clusters = length of list
+        best_config = pickle.load(open(os.path.join(settings.BASE_DIR, 'data', 'best_config.pkl'), 'rb'))
+
+        # Approximate cluster sizes (from your earlier output)
+        cluster_sizes = [148, 203, 149]  # from your print: 148, 203, 149
+        total = sum(cluster_sizes)
+        percentages = [round(s / total * 100, 1) for s in cluster_sizes]
+
+        # Build segment data and genre preferences
+        for i, series in enumerate(cluster_profiles):
+            preferences = series.to_dict()
+            top_genre = max(preferences, key=preferences.get)
+            top_score = round(preferences[top_genre], 3)
+
+            segment_data.append({
+                'segment': f"Cluster {i}",
+                'count': cluster_sizes[i],
+                'percentage': percentages[i]
+            })
+
+            cluster_genres.append({
+                'cluster': i,
+                'top_genre': top_genre,
+                'top_score': top_score,
+                'preferences': {g: round(preferences.get(g, 0), 3) for g in genres}
+            })
+
+        clustering_info = {
+            'k': best_k,
+            'silhouette': round(best_config.get('Silhouette', 0), 4),
+            'balance': round(best_config.get('Balance_Ratio', 0), 4)
+        }
+    except Exception as e:
+        print("Clustering load error:", e)
+        segment_data = []
+        cluster_genres = []
+
+    context = {
+        'total_users': total_users,
+        'total_movies': total_movies,
+        'total_ratings': total_ratings,
+        'avg_ratings_per_user': avg_ratings_per_user,
+        'popular_movies': popular_movies,
+        'genre_stats': json.dumps(genre_stats),
+        'segment_data': json.dumps(segment_data),
+        'clustering_info': clustering_info,
+        'cluster_genres': cluster_genres,  # NEW: real genre preferences
+    }
+    return render(request, 'core/admin_dashboard.html', context)
