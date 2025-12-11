@@ -11,32 +11,89 @@
             <p>Join MovieRec and get personalized recommendations</p>
         </div>
 
-        {% if error %}
-        <div class="alert alert-error">
-            <i class="fas fa-exclamation-circle"></i> {{ error }}
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+            </div>
+            {% endfor %}
         </div>
         {% endif %}
 
         <form method="POST" class="auth-form">
             {% csrf_token %}
+            
             <div class="form-group">
                 <label for="username">Username</label>
-                <input type="text" id="username" name="username" required placeholder="Choose a username">
+                <input type="text" id="username" name="username" required placeholder="Choose a unique username">
             </div>
 
             <div class="form-group">
                 <label for="email">Email</label>
-                <input type="email" id="email" name="email" required placeholder="Enter your email">
+                <input type="email" id="email" name="email" required placeholder="yourname@example.com">
             </div>
 
             <div class="form-group">
                 <label for="password">Password</label>
-                <input type="password" id="password" name="password" required placeholder="Create a password">
+                <input type="password" id="password" name="password" required placeholder="Create a strong password">
             </div>
 
             <div class="form-group">
                 <label for="password_confirm">Confirm Password</label>
-                <input type="password" id="password_confirm" name="password_confirm" required placeholder="Confirm your password">
+                <input type="password" id="password_confirm" name="password_confirm" required placeholder="Type your password again">
+            </div>
+
+            <h3 style="margin-top: 2.5rem; margin-bottom: 1rem; color: var(--text-primary);">
+                Your Profile <small style="color: var(--text-secondary); font-weight: normal;">(for better recommendations)</small>
+            </h3>
+
+            <div class="form-group">
+                <label for="age">Age</label>
+                <input type="number" id="age" name="age" min="13" max="100" placeholder="e.g. 25">
+            </div>
+
+            <div class="form-group">
+                <label for="gender">Gender</label>
+                <select id="gender" name="gender">
+                    <option value="" disabled selected>Select your gender</option>
+                    <option value="">Prefer not to say</option>
+                    <option value="M">Male</option>
+                    <option value="F">Female</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="occupation">Occupation</label>
+                <select id="occupation" name="occupation">
+                    <option value="" disabled selected>Select your occupation</option>
+                    <option value="0">Other or not specified</option>
+                    <option value="1">Academic/Educator</option>
+                    <option value="2">Artist</option>
+                    <option value="3">Engineer</option>
+                    <option value="4">College/Grad Student</option>
+                    <option value="5">Customer Service</option>
+                    <option value="6">Doctor/Health Care</option>
+                    <option value="7">Executive/Managerial</option>
+                    <option value="8">Farmer</option>
+                    <option value="9">Homemaker</option>
+                    <option value="10">K-12 Student</option>
+                    <option value="11">Lawyer</option>
+                    <option value="12">Programmer</option>
+                    <option value="13">Retired</option>
+                    <option value="14">Sales/Marketing</option>
+                    <option value="15">Scientist</option>
+                    <option value="16">Self-Employed</option>
+                    <option value="17">Technician/Engineer</option>
+                    <option value="18">Tradesman/Craftsman</option>
+                    <option value="19">Unemployed</option>
+                    <option value="20">Writer</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="zip_code">Zip Code</label>
+                <input type="text" id="zip_code" name="zip_code" placeholder="e.g. 48067" maxlength="10">
             </div>
 
             <button type="submit" class="btn btn-primary btn-block">Create Account</button>
@@ -47,5 +104,4 @@
         </div>
     </div>
 </div>
-
 {% endblock %}

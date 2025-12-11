@@ -2,6 +2,16 @@
 from django.db import models
 from django.contrib.auth.models import User
 import re
+# Add this class to core/models.py
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    age = models.IntegerField(null=True, blank=True)
+    gender = models.CharField(max_length=1, choices=[('M', 'Male'), ('F', 'Female')], blank=True)
+    occupation = models.IntegerField(null=True, blank=True)
+    zip_code = models.CharField(max_length=10, blank=True)
+
+    def __str__(self):
+        return f"{self.user.username}'s profile"
 
 class Movie(models.Model):
     movie_id = models.IntegerField(primary_key=True)  # MovieID from CSV

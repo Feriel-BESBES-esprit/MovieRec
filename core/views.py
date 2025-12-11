@@ -183,14 +183,18 @@ def watchlist(request):
 
 
 
+# core/views.py — REPLACE register function
+from core.models import UserProfile
+
 def register(request):
     if request.method == "POST":
         username = request.POST.get('username')
+        email = request.POST.get('email', '')
         password = request.POST.get('password')
         password_confirm = request.POST.get('password_confirm')
 
-        if not username or not password:
-            messages.error(request, "Please fill all fields!")
+        if not all([username, password]):
+            messages.error(request, "Please fill required fields!")
             return render(request, 'core/register.html')
 
         if password != password_confirm:
@@ -201,17 +205,28 @@ def register(request):
             messages.error(request, "Username already taken!")
             return render(request, 'core/register.html')
 
+        if User.objects.filter(email=email).exists() and email:
+            messages.error(request, "Email already in use!")
+            return render(request, 'core/register.html')
+
         # Create user
-        user = User.objects.create_user(username=username, password=password)
-        user.save()
+        user = User.objects.create_user(username=username, email=email, password=password)
         
-        # Auto login
+        # Create profile
+        profile = UserProfile.objects.create(user=user)
+        profile.age = request.POST.get('age', None)
+        if profile.age:
+            profile.age = int(profile.age)
+        profile.gender = request.POST.get('gender', '')
+        profile.occupation = int(request.POST.get('occupation', 0)) if request.POST.get('occupation') else None
+        profile.zip_code = request.POST.get('zip_code', '')
+        profile.save()
+
         login(request, user)
-        messages.success(request, f"Welcome {username}! You're now logged in.")
+        messages.success(request, f"Welcome {username}! Your profile is ready for personalized recommendations.")
         return redirect('home')
 
     return render(request, 'core/register.html')
-
 
 def login_view(request):
     if request.method == "POST":

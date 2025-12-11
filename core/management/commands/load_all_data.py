@@ -3,7 +3,7 @@ import pandas as pd
 import requests
 import time
 from django.core.management.base import BaseCommand
-from core.models import Movie
+from core.models import Movie, UserProfile
 from django.contrib.auth.models import User
 
 class Command(BaseCommand):
@@ -53,13 +53,42 @@ class Command(BaseCommand):
                 self.stdout.write(f"Processed {idx + 1}/{len(df)} movies...")
 
         # === 2. Load Users ===
-        self.stdout.write("Loading users...")
+              # === 2. Load Users with full profile ===
+        self.stdout.write("Loading users with profiles...")
         users_df = pd.read_csv("data/users_clean.csv")
+        
         for _, row in users_df.iterrows():
-            User.objects.update_or_create(
-                id=int(row['UserID']),
-                defaults={'username': f"user{row['UserID']}"}
+            user_id = int(row['UserID'])
+            username = f"user{user_id}"
+            email = f"{username}@gmail.com"
+            
+            # Create or update user
+            user, created = User.objects.update_or_create(
+                id=user_id,
+                defaults={
+                    'username': username,
+                    'email': email,
+                }
             )
+            
+            # Set password
+            if created or not user.has_usable_password():
+                user.set_password('A123456789$')
+                user.save()
+            
+            # Create or update profile
+            profile, _ = UserProfile.objects.update_or_create(
+                user=user,
+                defaults={
+                    'age': int(row['Age']) if pd.notna(row['Age']) else None,
+                    'gender': row['Gender'],
+                    'occupation': int(row['Occupation']),
+                    'zip_code': str(row['Zip-code']),
+                }
+            )
+            
+            if (user_id % 500 == 0):
+                self.stdout.write(f"Processed {user_id} users...")
 
         # === 3. Load Ratings ===
         self.stdout.write("Loading 1M+ ratings...")
