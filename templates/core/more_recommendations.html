@@ -1,0 +1,23 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}More Recommendations - MovieRec{% endblock %}
+
+{% block content %}
+<div class="browse-container">
+    <h1>Your Personalized Recommendations</h1>
+    <p class="search-info">We found <strong>{{ total }}</strong> movies we think you'll love!</p>
+
+    <div class="movies-grid">
+        {% for movie in recommendations %}
+            {% include 'core/movie_card.html' with movie=movie %}
+        {% empty %}
+            <p class="no-movies">No recommendations yet. Start rating movies!</p>
+        {% endfor %}
+    </div>
+
+    <div style="margin-top: 3rem; text-align: center;">
+        <a href="{% url 'home' %}" class="btn btn-secondary">Back to Home</a>
+    </div>
+</div>
+{% endblock %}
