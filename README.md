@@ -4,6 +4,8 @@ This project is a Django-based web application designed to provide a personalize
 allows users to browse a movie catalog, rate movies, manage a watchlist, and potentially receive recommendations based
 on various factors. The system leverages Django's robust ORM for data management and is structured to support scalable
 deployment with ASGI/WSGI servers.
+<img width="1842" height="862" alt="Screenshot 2025-12-14 095519" src="https://github.com/user-attachments/assets/0542d50f-e296-48e8-9fb6-f76d3a85fe1a" />
+
 
 ---
 
